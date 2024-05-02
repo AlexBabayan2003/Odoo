@@ -6,12 +6,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,16 +23,17 @@ class MainActivity : ComponentActivity() {
                 )
             )
             Navigation()
+            //use thems
+            //run fun
         }
     }
 
-    @Preview
     @Composable
     fun Navigation() {
         val navController = rememberNavController()
         NavHost(
             navController = navController,
-            "TimeSheets"
+            startDestination = "TimeSheets"
         ) {
             composable("TimeSheets") {
                 TimeSheets {

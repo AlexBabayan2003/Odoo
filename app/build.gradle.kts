@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    id("kotlin-kapt")
+    id("kotlin-parcelize")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -52,8 +55,35 @@ android {
 dependencies {
 
 
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.activity.ktx)
+
+    //hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
+    implementation (libs.androidx.hilt.navigation.compose)
+    // When using Kotlin.
+
+    //room
+    implementation(libs.androidx.room.runtime)
+    kapt("androidx.room:room-compiler:2.6.1")
+    implementation(libs.androidx.room.ktx)
+
+    //retrofit
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.logging.interceptor)
+
+    //fragment
+    implementation(libs.androidx.fragment.ktx)
+
+    //viewmodel
+    implementation(libs.androidx.lifecycle.viewmodel.ktx.v262)
+    implementation(libs.androidx.lifecycle.livedata.ktx.v262)
+    implementation(libs.androidx.lifecycle.runtime.ktx.v262)
+
+    //activity
+    implementation(libs.activity.ktx)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

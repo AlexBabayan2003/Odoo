@@ -1,6 +1,5 @@
 package com.example.odoo
 
-import android.widget.Space
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -42,10 +43,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.odoo.data.entity.Timer
 import com.example.odoo.ui.theme.interFont
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+
 @Preview
 @Composable
-fun CreateTimer(onClick: () -> Unit = {}) {
+fun CreateTimer(
+    timerViewModel: TimerViewModel = hiltViewModel(),
+    onClick: () -> Unit = {}
+) {
+
+    var selectedProject by remember { mutableStateOf("") }
+    var selectedTask by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var favorite by remember { mutableStateOf(false) }
+
     GradientBackground()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,16 +73,34 @@ fun CreateTimer(onClick: () -> Unit = {}) {
 
         DropDownMenu(
             "Project",
-            listOf("Android app development", "Other")
-        )
+            listOf("Android app deployment", "Android app deployment with odd")
+        ) { project -> selectedProject = project }
         DropDownMenu(
             "Task",
-            listOf("Make a Odoo app")
-        )
-        Description()
+            listOf("SO056 - Booqio V2")
+        ) { task -> selectedTask = task }
+        Description { enteredDescription ->
+            description = enteredDescription
+        }
 
-        MakeFavorite()
-        CreateTimerButton(onClick)
+        MakeFavorite(favorite = favorite) { updatedFavorite ->
+            favorite = updatedFavorite // Update the favorite state
+        }
+
+        val newTimer = Timer(
+            time = 0,
+            project = selectedProject,
+            task = selectedTask,
+            description = description,
+            favorite = favorite,
+            timeInSeconds = 0
+        )
+        CreateTimerButton {
+            timerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                timerViewModel.createTimer(timer = newTimer)
+            }
+            onClick()
+        }
     }
 
 }
@@ -90,8 +125,7 @@ fun CreateTimerButton(onClick: () -> Unit = {}) {
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(48.dp)
-                .widthIn(max = 361.dp)
-            ,
+                .widthIn(max = 361.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.White.copy(alpha = 0.16f)
             )
@@ -103,6 +137,50 @@ fun CreateTimerButton(onClick: () -> Unit = {}) {
                 fontWeight = FontWeight.Medium
             )
 
+        }
+    }
+}
+
+@Composable
+fun MakeFavorite(favorite: Boolean, onFavoriteChanged: (Boolean) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 4.dp, vertical = 8.dp)
+            .width(361.dp)
+            .height(40.dp)
+            .clickable { expanded = true },
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.btn_down),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Make Favorite",
+            color = Color.White,
+            fontSize = 18.sp,
+            modifier = Modifier
+                .padding(start = 8.dp)
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(IntrinsicSize.Min)
+        ) {
+            DropdownMenuItem({
+                Text(text = "Make Favorite")
+            },
+                onClick = {
+                    onFavoriteChanged(!favorite)
+                    expanded = false
+                }, interactionSource = remember { MutableInteractionSource() })
         }
     }
 }
@@ -147,36 +225,9 @@ fun Headline(onClick: () -> Unit = {}) {
     }
 }
 
-@Composable
-fun MakeFavorite() {
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 4.dp, vertical = 8.dp)
-            .width(361.dp)
-            .height(40.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.btn_down),
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "Make Favorite",
-            color = Color.White,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(start = 8.dp)
-        )
-    }
-}
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropDownMenu(category: String, items: List<String>) {
+fun DropDownMenu(category: String, items: List<String>, onItemSelected: (String) -> Unit) {
 
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by remember { mutableStateOf("") }
@@ -213,8 +264,7 @@ fun DropDownMenu(category: String, items: List<String>) {
                         Icon(
                             modifier = Modifier
                                 .width(24.dp)
-                                .height(24.dp)
-                            ,
+                                .height(24.dp),
                             painter = painterResource(id = R.drawable.btn_down),
                             contentDescription = null
                         )
@@ -230,7 +280,8 @@ fun DropDownMenu(category: String, items: List<String>) {
                     focusedTextColor = Color.White,
                     unfocusedSupportingTextColor = Color.White
                 ),
-                modifier = Modifier.menuAnchor()
+                modifier = Modifier
+                    .menuAnchor()
                     .clickable { expanded = true }
                     .fillMaxWidth()
 
@@ -245,7 +296,7 @@ fun DropDownMenu(category: String, items: List<String>) {
                             Text(
                                 text = selectionOption, fontFamily = interFont,
                                 fontWeight = FontWeight.Normal,
-                                        modifier = Modifier
+                                modifier = Modifier
 //                                        .height(56.dp)
 //                                    .padding(vertical = 8.dp)
                             )
@@ -254,6 +305,7 @@ fun DropDownMenu(category: String, items: List<String>) {
                             selectedOptionText = selectionOption
                             expanded = false
                             categoryChosen = true
+                            onItemSelected(selectionOption)
                         },
                         interactionSource = remember { MutableInteractionSource() }
                     )
@@ -264,7 +316,7 @@ fun DropDownMenu(category: String, items: List<String>) {
 }
 
 @Composable
-fun Description() {
+fun Description(onDescriptionChanged: (String) -> Unit) {
 
     var text by remember { mutableStateOf("") }
 
@@ -275,7 +327,10 @@ fun Description() {
             .height(56.dp)
             .border(2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(8.dp)),
         value = text,
-        onValueChange = { text = it },
+        onValueChange = {
+            text = it
+            onDescriptionChanged(it)
+        },
         colors = OutlinedTextFieldDefaults.colors(
             disabledTextColor = Color.White,
             unfocusedTextColor = Color.White,
